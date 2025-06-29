@@ -158,6 +158,10 @@ Delivery: Steady and measured, with slight emphasis on key figures and deadlines
 class SpeakRequest(BaseModel):
     text: str
 
+@app.get("/")
+def read_root():
+    return {"message": "Atlasic backend is running!"}
+
 @app.post("/speak")
 async def speak(data: SpeakRequest, background_tasks: BackgroundTasks):
     audio_filename = f"temp_audio_{uuid.uuid4()}.mp3"
