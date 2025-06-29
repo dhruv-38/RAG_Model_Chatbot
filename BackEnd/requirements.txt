@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+python-dotenv
+openai
+langchain-chroma
+langchain-openai
+unstructured
+pillow
+python-multipart
+requests
+tiktoken
