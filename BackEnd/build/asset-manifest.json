@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/static/css/main.6692b338.css",
+    "main.js": "/static/js/main.c8375cef.js",
+    "static/media/chatbot_icon.png": "/static/media/chatbot_icon.25517cfb781f3c14c5e3.png",
+    "static/media/Atlasic.png": "/static/media/Atlasic.630938878607e3274901.png",
+    "index.html": "/index.html",
+    "main.6692b338.css.map": "/static/css/main.6692b338.css.map",
+    "main.c8375cef.js.map": "/static/js/main.c8375cef.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.6692b338.css",
+    "static/js/main.c8375cef.js"
+  ]
+}

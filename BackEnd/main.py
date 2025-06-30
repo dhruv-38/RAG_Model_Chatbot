@@ -28,6 +28,8 @@ app.add_middleware(
 
 # --- Static files (PDFs) ---
 app.mount("/static", StaticFiles(directory="./pdfs"), name="static")
+app.mount("/static", StaticFiles(directory="build/static"), name="static")
+
 
 # --- Input schema ---
 class Query(BaseModel):
@@ -158,9 +160,18 @@ Delivery: Steady and measured, with slight emphasis on key figures and deadlines
 class SpeakRequest(BaseModel):
     text: str
 
+# Serve React index.html at root
 @app.get("/")
-def read_root():
-    return {"message": "Atlasic backend is running!"}
+async def serve_root():
+    return FileResponse("build/index.html")
+
+# Serve React static files and support React Router
+@app.get("/{full_path:path}")
+async def serve_react_app(full_path: str):
+    file_path = os.path.join("build", full_path)
+    if os.path.exists(file_path):
+        return FileResponse(file_path)
+    return FileResponse("build/index.html")
 
 @app.post("/speak")
 async def speak(data: SpeakRequest, background_tasks: BackgroundTasks):
