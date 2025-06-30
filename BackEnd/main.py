@@ -31,7 +31,7 @@ BUILD_DIR = os.path.join(BASE_DIR, "build")
 STATIC_DIR = os.path.join(BUILD_DIR, "static")
 
 # --- Static files (PDFs) ---
-app.mount("/static", StaticFiles(directory="./pdfs"), name="static")
+app.mount("/pdfs", StaticFiles(directory="./pdfs"), name="pdfs")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
