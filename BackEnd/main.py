@@ -26,9 +26,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BUILD_DIR = os.path.join(BASE_DIR, "build")
+STATIC_DIR = os.path.join(BUILD_DIR, "static")
+
 # --- Static files (PDFs) ---
 app.mount("/static", StaticFiles(directory="./pdfs"), name="static")
-app.mount("/static", StaticFiles(directory="build/static"), name="static")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 # --- Input schema ---
@@ -163,15 +167,14 @@ class SpeakRequest(BaseModel):
 # Serve React index.html at root
 @app.get("/")
 async def serve_root():
-    return FileResponse("build/index.html")
+    return FileResponse(os.path.join(BUILD_DIR, "index.html"))
 
-# Serve React static files and support React Router
 @app.get("/{full_path:path}")
 async def serve_react_app(full_path: str):
-    file_path = os.path.join("build", full_path)
+    file_path = os.path.join(BUILD_DIR, full_path)
     if os.path.exists(file_path):
         return FileResponse(file_path)
-    return FileResponse("build/index.html")
+    return FileResponse(os.path.join(BUILD_DIR, "index.html"))
 
 @app.post("/speak")
 async def speak(data: SpeakRequest, background_tasks: BackgroundTasks):
