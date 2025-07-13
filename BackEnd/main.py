@@ -4,13 +4,18 @@ from dotenv import load_dotenv
 import os
 from fastapi.middleware.cors import CORSMiddleware
 from langchain_chroma import Chroma
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from fastapi.staticfiles import StaticFiles
-from openai import OpenAI
+import google.generativeai as genai
 from fastapi.responses import FileResponse
 import shutil
 import uuid
 import subprocess
+import pyttsx3
+import tempfile
+import io
+from faster_whisper import WhisperModel
+
 
 load_dotenv()
 
@@ -40,10 +45,30 @@ class Query(BaseModel):
     question: str
 
 # --- Vector DB and LLM Setup ---
-api_key = os.getenv("OPENAI_API_KEY")
-persist_dir = "./vector_db_new"
-client = OpenAI(api_key=api_key)
-embedding = OpenAIEmbeddings(openai_api_key=api_key)
+api_key = os.getenv("GOOGLE_API_KEY")
+persist_dir = "./vector_db"
+
+# Configure Gemini
+genai.configure(api_key=api_key)
+
+# Use BGE embeddings instead of OpenAI
+from sentence_transformers import SentenceTransformer
+embedding_model = SentenceTransformer('BAAI/bge-large-en-v1.5')
+
+# Custom embedding function for Chroma
+class BGEEmbeddings:
+    def __init__(self, model_name='BAAI/bge-large-en-v1.5'):
+        self.model = SentenceTransformer(model_name)
+    
+    def embed_documents(self, texts):
+        embeddings = self.model.encode(texts, normalize_embeddings=True)
+        return embeddings.tolist()
+    
+    def embed_query(self, text):
+        embedding = self.model.encode([text], normalize_embeddings=True)
+        return embedding[0].tolist()
+
+embedding = BGEEmbeddings()
 vectorstore = Chroma(
     persist_directory=persist_dir,
     embedding_function=embedding,
@@ -51,7 +76,7 @@ vectorstore = Chroma(
 )
 retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
 
-llm = ChatOpenAI(model="gpt-4o", temperature=0.2, api_key=api_key)
+llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.5, google_api_key=api_key)
 
 # --- Prompt construction ---
 def build_prompt(context_docs, question):
@@ -128,7 +153,7 @@ async def ask_question(query: Query):
             }
         pdf_reference = docs[0].metadata.get('source_file', None) if docs else None
         if pdf_reference:
-            pdf_reference = f"/static/{os.path.basename(pdf_reference)}"
+            pdf_reference = f"/pdfs/{os.path.basename(pdf_reference)}"
         return {
             "response": response.content,
             "pdf": pdf_reference
@@ -145,14 +170,46 @@ async def ask_question(query: Query):
 async def transcribe_audio(file: UploadFile = File(...)):
     try:
         contents = await file.read()
-        response = client.audio.transcriptions.create(
-            model="whisper-1",
-            file=(file.filename, contents, file.content_type),
-            language="en"
-        )
-        return {"text": response.text}
+        print(f"Received audio file: {file.filename}, size: {len(contents)} bytes")
+        
+        # Save the uploaded file temporarily with proper path
+        temp_file_path = os.path.join(tempfile.gettempdir(), f"audio_{uuid.uuid4()}.webm")
+        print(f"Saving to: {temp_file_path}")
+        
+        with open(temp_file_path, "wb") as temp_file:
+            temp_file.write(contents)
+        
+        print(f"File saved successfully. File exists: {os.path.exists(temp_file_path)}")
+        print(f"File size: {os.path.getsize(temp_file_path)} bytes")
+
+        # Load Faster Whisper model (will download on first use)
+        print("Loading Faster Whisper model...")
+        model = WhisperModel("base", device="cpu", compute_type="int8")
+        print("Faster Whisper model loaded successfully")
+        
+        # Transcribe using Faster Whisper
+        print("Starting transcription...")
+        segments, info = model.transcribe(temp_file_path, beam_size=5)
+        print("Transcription completed")
+        
+        # Clean up temporary file
+        if os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
+            print("Temporary file cleaned up")
+        
+        # Return transcribed text
+        text = " ".join([segment.text for segment in segments]).strip()
+        print(f"Transcribed text: {text}")
+        return {"text": text}
+            
     except Exception as e:
-        print("Transcription error:", e)
+        print(f"Transcription error: {e}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        traceback.print_exc()
+        # Clean up file if it exists
+        if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
         return {"error": str(e)}
 
 # --- TTS endpoint ---
@@ -164,33 +221,31 @@ Delivery: Steady and measured, with slight emphasis on key figures and deadlines
 class SpeakRequest(BaseModel):
     text: str
 
-# Serve React index.html at root
-@app.get("/")
-async def serve_root():
-    return FileResponse(os.path.join(BUILD_DIR, "index.html"))
 
-@app.get("/{full_path:path}")
-async def serve_react_app(full_path: str):
-    file_path = os.path.join(BUILD_DIR, full_path)
-    if os.path.exists(file_path):
-        return FileResponse(file_path)
-    return FileResponse(os.path.join(BUILD_DIR, "index.html"))
 
 @app.post("/speak")
 async def speak(data: SpeakRequest, background_tasks: BackgroundTasks):
-    audio_filename = f"temp_audio_{uuid.uuid4()}.mp3"
+    audio_filename = f"temp_audio_{uuid.uuid4()}.wav"
     audio_path = os.path.join(os.getcwd(), audio_filename)
     try:
-        openai_client = OpenAI(api_key=api_key)
-        response = openai_client.audio.speech.create(
-            model="tts-1",
-            voice="nova",
-            input=data.text,
-            response_format="mp3",
-        )
-        response.stream_to_file(audio_path)
+        # Initialize TTS engine
+        engine = pyttsx3.init()
+        
+        # Configure voice settings
+        engine.setProperty('rate', 150)    # Speed of speech
+        engine.setProperty('volume', 0.9)  # Volume level
+        
+        # Get available voices and set to a good one
+        voices = engine.getProperty('voices')
+        if voices:
+            engine.setProperty('voice', voices[0].id)  # Use first available voice
+        
+        # Save to file
+        engine.save_to_file(data.text, audio_path)
+        engine.runAndWait()
+        
         background_tasks.add_task(os.remove, audio_path)
-        return FileResponse(audio_path, media_type="audio/mpeg", filename="speech.mp3")
+        return FileResponse(audio_path, media_type="audio/wav", filename="speech.wav")
     except Exception as e:
         print(f"Error during speech generation: {e}")
         if os.path.exists(audio_path):
@@ -242,7 +297,7 @@ async def test_api_credits():
         test_response = llm.invoke("Hello")
         return {
             "status": "success",
-            "message": "API credits are working",
+            "message": "Gemini API is working",
             "response_preview": test_response.content[:50] + "..."
         }
     except Exception as e:
@@ -265,3 +320,15 @@ async def test_api_credits():
                 "message": "Other API error",
                 "error": str(e)
             }
+
+# Serve React index.html at root
+@app.get("/")
+async def serve_root():
+    return FileResponse(os.path.join(BUILD_DIR, "index.html"))
+
+@app.get("/{full_path:path}")
+async def serve_react_app(full_path: str):
+    file_path = os.path.join(BUILD_DIR, full_path)
+    if os.path.exists(file_path):
+        return FileResponse(file_path)
+    return FileResponse(os.path.join(BUILD_DIR, "index.html"))

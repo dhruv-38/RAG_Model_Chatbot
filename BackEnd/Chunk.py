@@ -5,17 +5,17 @@ import json, hashlib
 import os
 import base64
 from PIL import Image
-import openai
+import google.generativeai as genai
 import uuid
 from dotenv import load_dotenv
 import shutil # Import shutil for directory removal
 
 # --- Load API Key ---
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 # --- Config Paths ---
-PDF_INPUT_DIR = Path("uploaded_files/") # Directory containing PDF files
+PDF_INPUT_DIR = Path("pdfs/") # Directory containing PDF files
 
 # Define the base directory for all outputs
 OUTPUT_BASE_DIR = Path("processing_output")
@@ -102,31 +102,30 @@ def process_pdf(pdf_path):
                         seen_images.add(hash_val)
 
                         try:
-                            response = openai.chat.completions.create(
-                                model="gpt-4o",
-                                messages=[
+                            # Create the image part for Gemini
+                            image_part = {
+                                "mime_type": "image/jpeg",
+                                "data": base64.b64decode(b64)
+                            }
+                            
+                            response = genai.generate_content(
+                                model="gemini-pro-vision",
+                                contents=[
                                     {
-                                        "role": "user",
-                                        "content": [
-                                            {"type": "text", "text": """Analyze the image carefully. If it contains any charts, diagrams, tables, or visible text, 
+                                        "parts": [
+                                            {"text": """Analyze the image carefully. If it contains any charts, diagrams, tables, or visible text, 
                                             summarize *all* of its contents in complete detail. Include any labels, legends, axes, or numbers 
                                             visible. Be exhaustive — assume there's no limit to output size.\n\n
                                             If the image appears to be a photograph or illustration with no diagrams, summarize it briefly, focusing 
                                             only on key visual elements."""},
-                                            {
-                                                "type": "image_url",
-                                                "image_url": {
-                                                    "url": f"data:image/jpeg;base64,{b64}"
-                                                },
-                                            },
-                                        ],
+                                            image_part
+                                        ]
                                     }
-                                ],
-                                max_tokens=500,
+                                ]
                             )
-                            image_description = response.choices[0].message.content
+                            image_description = response.text
                         except Exception as e:
-                            print(f"OpenAI API error for image on page {page} in {source_file}: {e}")
+                            print(f"Gemini API error for image on page {page} in {source_file}: {e}")
                             image_description = "[Error in image description]"
 
                         output.append({
@@ -186,17 +185,30 @@ for folder in folders_to_delete:
 
 
 from langchain.vectorstores import Chroma
-from langchain.embeddings import OpenAIEmbeddings
 from langchain_core.documents import Document
 import tiktoken
+from sentence_transformers import SentenceTransformer
 
 # --- Load Environment Variables ---
 load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
 
 # --- Tokenizer and Vectorstore Setup ---
 encoding = tiktoken.encoding_for_model("text-embedding-3-small")
-embeddings = OpenAIEmbeddings(openai_api_key=api_key, model="text-embedding-3-small")
+
+# Use BGE embeddings instead of OpenAI
+class BGEEmbeddings:
+    def __init__(self, model_name='BAAI/bge-large-en-v1.5'):
+        self.model = SentenceTransformer(model_name)
+    
+    def embed_documents(self, texts):
+        embeddings = self.model.encode(texts, normalize_embeddings=True)
+        return embeddings.tolist()
+    
+    def embed_query(self, text):
+        embedding = self.model.encode([text], normalize_embeddings=True)
+        return embedding[0].tolist()
+
+embeddings = BGEEmbeddings()
 persist_dir = "vector_db"
 os.makedirs(persist_dir, exist_ok=True)
 

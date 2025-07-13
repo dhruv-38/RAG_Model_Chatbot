@@ -1,11 +1,14 @@
 fastapi
 uvicorn
 python-dotenv
-openai
+google-generativeai
 langchain-chroma
-langchain-openai
+langchain-google-genai
+sentence-transformers
 unstructured
 pillow
 python-multipart
 requests
 tiktoken
+pyttsx3
+faster-whisper

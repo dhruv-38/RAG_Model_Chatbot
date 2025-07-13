@@ -66,7 +66,16 @@ function ChatContainer() {
   const startRecording = async () => {
     setIsRecording(true);
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const recorder = new window.MediaRecorder(stream);
+    
+    // Try to use MP3 format, fallback to default if not supported
+    let mimeType = 'audio/mp3';
+    if (!MediaRecorder.isTypeSupported('audio/mp3')) {
+      mimeType = 'audio/webm;codecs=opus';
+    }
+    
+    const recorder = new window.MediaRecorder(stream, {
+      mimeType: mimeType
+    });
     setMediaRecorder(recorder);
 
     let chunks = [];
@@ -74,10 +83,12 @@ function ChatContainer() {
 
     recorder.onstop = async () => {
       stream.getTracks().forEach(track => track.stop());
-      const audioBlob = new Blob(chunks, { type: 'audio/wav' });
+      
+      // Create blob with detected format
+      const audioBlob = new Blob(chunks, { type: mimeType });
       setTranscribing(true);
       const formData = new FormData();
-      formData.append("file", audioBlob, "recording.wav");
+      formData.append("file", audioBlob, `recording.${mimeType.includes('mp3') ? 'mp3' : 'webm'}`);
 
       try {
         const res = await axios.post("http://localhost:8000/transcribe", formData, {
