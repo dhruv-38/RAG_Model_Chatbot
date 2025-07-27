@@ -1,0 +1,37 @@
+[
+  {
+    "uuid": "7396abba-849b-43fa-a67c-e913da4c4895",
+    "type": "image",
+    "source_file": "Sample Project Report.pdf",
+    "page_number": 1,
+    "content": "[Error in image description]"
+  },
+  {
+    "uuid": "230bb332-339a-4612-b700-c2a79020437c",
+    "type": "text",
+    "source_file": "Sample Project Report.pdf",
+    "page_number": 1,
+    "content": "Sample Project Report"
+  },
+  {
+    "uuid": "37e418e4-c7a4-42d6-9cb1-4e470aa191b8",
+    "type": "text",
+    "source_file": "Sample Project Report.pdf",
+    "page_number": 1,
+    "content": "This is a sample project report generated for testing purposes. The report outlines how a basic PDF"
+  },
+  {
+    "uuid": "fde78781-6918-489d-a514-a606c01349cf",
+    "type": "text",
+    "source_file": "Sample Project Report.pdf",
+    "page_number": 1,
+    "content": "can be programmatically created using Python's FPDF library. It contains a header, a footer, and a"
+  },
+  {
+    "uuid": "7bf94c15-e915-445e-ab9b-5f5e136490be",
+    "type": "text",
+    "source_file": "Sample Project Report.pdf",
+    "page_number": 1,
+    "content": "body paragraph. Such PDFs are useful for generating dynamic reports, summaries, or logs from data pipelines or applications. This text serves as a placeholder to evaluate formatting, font rendering, and overall layout. No actual data or analytics are included in this mock report."
+  }
+]
