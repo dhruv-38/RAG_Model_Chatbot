@@ -12,3 +12,4 @@ requests
 tiktoken
 pyttsx3
 faster-whisper
+pdfminer.six
