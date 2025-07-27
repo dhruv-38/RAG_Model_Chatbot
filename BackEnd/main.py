@@ -22,15 +22,6 @@ load_dotenv()
 # --- FastAPI APP ---
 app = FastAPI()
 
-# --- CORS for production (set your frontend domain) ---
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[os.getenv("FRONTEND_ORIGIN", "http://localhost:3000")],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 BUILD_DIR = os.path.join(BASE_DIR, "build")
 STATIC_DIR = os.path.join(BUILD_DIR, "static")

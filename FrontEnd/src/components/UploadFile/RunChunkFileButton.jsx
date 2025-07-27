@@ -7,7 +7,7 @@ function RunChunkFileButton({ setChat }) {
   const handleRunChunkFile = async () => {
     setRunning(true);
     try {
-      const response = await axios.post('http://localhost:8000/run-chunk-file');
+      const response = await axios.post('https://atlasic.onrender.com/run-chunk-file');
       setChat(prevChat => [...prevChat, {
         id: prevChat.length + 1,
         text: response.data.message || "File processed.",

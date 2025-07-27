@@ -20,7 +20,7 @@ function ChatMessages({ messages, showPDF, setPdfUrl, setShowPDF }) {
                 <button
                   className="view-pdf-btn"
                   onClick={() => {
-                    setPdfUrl(msg.pdf.startsWith('http') ? msg.pdf : `http://localhost:8000${msg.pdf}`);
+                    setPdfUrl(msg.pdf.startsWith('http') ? msg.pdf : `https://atlasic.onrender.com${msg.pdf}`);
                     setShowPDF(true);
                   }}
                 >

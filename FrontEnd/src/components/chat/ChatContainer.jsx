@@ -34,7 +34,7 @@ function ChatContainer() {
     setIsLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:8000/ask', {
+      const response = await axios.post('https://atlasic.onrender.com/ask', {
         question: msgToSend
       });
 
@@ -91,7 +91,7 @@ function ChatContainer() {
       formData.append("file", audioBlob, `recording.${mimeType.includes('mp3') ? 'mp3' : 'webm'}`);
 
       try {
-        const res = await axios.post("http://localhost:8000/transcribe", formData, {
+        const res = await axios.post("https://atlasic.onrender.com/transcribe", formData, {
           headers: { "Content-Type": "multipart/form-data" }
         });
         const transcribedText = res.data.text;
@@ -162,7 +162,7 @@ function ChatContainer() {
                         <button
                           className="view-pdf-btn"
                           onClick={() => {
-                            setPdfUrl(msg.pdf.startsWith('http') ? msg.pdf : `http://localhost:8000${msg.pdf}`);
+                            setPdfUrl(msg.pdf.startsWith('http') ? msg.pdf : `https://atlasic.onrender.com${msg.pdf}`);
                             setShowPDF(true);
                           }}
                         >

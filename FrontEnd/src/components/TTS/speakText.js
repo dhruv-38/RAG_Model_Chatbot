@@ -1,5 +1,5 @@
 export const speakText = async (text) => {
-  const response = await fetch('http://localhost:8000/speak', {
+  const response = await fetch('https://atlasic.onrender.com/speak', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
