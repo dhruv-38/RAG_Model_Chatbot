@@ -11,7 +11,7 @@ function ChatContainer() {
   const [isLoading, setIsLoading] = useState(false);
   const [chat, setChat] = useState([
     { id: 1, text: 'Hi!', isUser: true, pdf: null },
-    { id: 2, text: 'Please create a chat session first', isUser: false, pdf: null }
+    { id: 2, text: 'All the features are currently not available on this live site. Please clone the repository from GitHub and run it locally to test the functionality.', isUser: false, pdf: null }
   ]);
   const [showPDF, setShowPDF] = useState(false);
   const [pdfUrl, setPdfUrl] = useState(null);
